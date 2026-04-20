@@ -2,8 +2,24 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>日本100名城・続100名城 訪城記</title>
+
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f3460">
+    <meta name="description" content="日本100名城・続100名城を記録・管理できるスマホ対応アプリ">
+    <meta name="application-name" content="訪城記">
+    <meta name="mobile-web-app-capable" content="yes">
+
+    <!-- iOS Safari PWA -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="訪城記">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
@@ -645,40 +661,143 @@
             background: #f5f5f5;
         }
 
-        /* Responsive */
+        /* ===== Floating GPS Button (map view) ===== */
+        .map-wrapper {
+            position: relative;
+            height: 100%;
+            width: 100%;
+        }
+
+        .locate-btn {
+            position: absolute;
+            right: 14px;
+            bottom: 20px;
+            z-index: 1000;
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            border: none;
+            background: #ffffff;
+            color: #1a1a2e;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
+            font-size: 1.3rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.15s ease, background 0.2s;
+        }
+        .locate-btn:hover { background: #f5f5f5; }
+        .locate-btn:active { transform: scale(0.93); }
+        .locate-btn.loading i {
+            animation: spin 1s linear infinite;
+            color: #2196f3;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ===== Mobile tab bar (bottom navigation) ===== */
+        /* Show as top tabs on desktop, switch to bottom nav on mobile */
         @media (max-width: 768px) {
+            body {
+                padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+            }
+            .header {
+                padding: 0.9rem 1rem;
+                padding-top: calc(0.9rem + env(safe-area-inset-top, 0px));
+            }
+            .header h1 { font-size: 1.15rem; }
+            .header p { font-size: 0.8rem; }
+
             .container {
-                height: calc(100vh - 120px);
+                height: calc(100vh - 100px - env(safe-area-inset-top, 0px));
             }
 
-            .header h1 {
-                font-size: 1.3rem;
-            }
-
-            .castle-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .nav button {
-                min-width: 100px;
-                font-size: 0.85rem;
-                padding: 0.7rem;
-            }
+            .castle-grid { grid-template-columns: 1fr; }
 
             .modal-content {
                 width: 95%;
-                padding: 1.5rem;
+                padding: 1.25rem;
+                max-height: 85vh;
+                overflow-y: auto;
             }
 
             .plan-castle-item {
                 flex-direction: column;
                 align-items: flex-start;
             }
-
             .plan-reorder-buttons {
                 margin-top: 0.5rem;
                 margin-left: 0;
                 width: 100%;
+            }
+
+            /* Bottom fixed nav */
+            .nav {
+                position: fixed;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                top: auto;
+                border-top: 1px solid #e0e0e0;
+                border-bottom: none;
+                background: #ffffff;
+                padding-bottom: env(safe-area-inset-bottom, 0px);
+                box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.08);
+                z-index: 2000;
+                overflow: visible;
+            }
+            .nav button {
+                flex: 1;
+                min-width: 0;
+                padding: 0.55rem 0.25rem 0.6rem;
+                font-size: 0.72rem;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 0.25rem;
+                border-bottom: none;
+                color: #888;
+            }
+            .nav button i {
+                font-size: 1.25rem;
+                margin: 0;
+            }
+            .nav button.active {
+                color: #0f3460;
+                background: rgba(212, 168, 67, 0.08);
+                border-bottom: none;
+            }
+            .nav button.active::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 25%;
+                right: 25%;
+                height: 3px;
+                background: #d4a843;
+                border-radius: 0 0 3px 3px;
+            }
+            .nav button { position: relative; }
+
+            /* Larger touch targets */
+            button, .nav button, select, input[type="text"] {
+                min-height: 44px;
+            }
+            input[type="text"], select {
+                font-size: 16px; /* avoid iOS auto-zoom */
+            }
+            /* Float the locate button above bottom nav on mobile */
+            .locate-btn { bottom: 16px; }
+
+            /* Map popups friendlier on small screens */
+            .map-popup { min-width: 220px; }
+        }
+
+        /* iOS standalone - add padding when no system chrome */
+        @supports (padding: max(0px)) {
+            @media all and (display-mode: standalone) {
+                .header { padding-top: max(0.9rem, env(safe-area-inset-top)); }
             }
         }
     </style>
@@ -707,7 +826,14 @@
     <div class="container">
         <div class="main-content">
             <!-- Map View -->
-            <div id="map" class="tab-panel active"></div>
+            <div class="tab-panel map-panel active" data-panel="map">
+                <div class="map-wrapper">
+                    <div id="map"></div>
+                    <button id="locateBtn" class="locate-btn" onclick="locateMe()" title="現在地を表示" aria-label="現在地を表示">
+                        <i class="fas fa-location-crosshairs"></i>
+                    </button>
+                </div>
+            </div>
 
             <!-- Stamp Book View -->
             <div class="tab-panel stamp-book">
@@ -1043,6 +1169,10 @@
             if (tabName === 'stamp-book') updateStampBook();
             if (tabName === 'statistics') updateStatistics();
             if (tabName === 'travel-plan') updateTravelPlan();
+            if (tabName === 'map' && map) {
+                // When returning to the map, Leaflet needs to re-measure its container.
+                setTimeout(() => map.invalidateSize(), 50);
+            }
         }
 
         function updateStampBook() {
@@ -1309,6 +1439,69 @@
         function updateUI() {
             updateStampBook();
             updateTravelPlan();
+        }
+
+        // ============ PWA: Service Worker Registration ============
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').catch((err) => {
+                    console.warn('SW registration failed:', err);
+                });
+            });
+        }
+
+        // ============ GPS: Current Location ============
+        let userLocationMarker = null;
+        let userLocationCircle = null;
+
+        function locateMe() {
+            if (!map) return;
+            const btn = document.getElementById('locateBtn');
+            if (!navigator.geolocation) {
+                alert('このブラウザでは現在地取得に対応していません。');
+                return;
+            }
+            if (btn) btn.classList.add('loading');
+
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    const { latitude, longitude, accuracy } = pos.coords;
+                    const latlng = [latitude, longitude];
+
+                    if (userLocationMarker) {
+                        userLocationMarker.setLatLng(latlng);
+                        userLocationCircle.setLatLng(latlng).setRadius(accuracy);
+                    } else {
+                        userLocationMarker = L.circleMarker(latlng, {
+                            radius: 8,
+                            fillColor: '#2196f3',
+                            color: '#ffffff',
+                            weight: 3,
+                            opacity: 1,
+                            fillOpacity: 1
+                        }).addTo(map).bindPopup('現在地');
+                        userLocationCircle = L.circle(latlng, {
+                            radius: accuracy,
+                            color: '#2196f3',
+                            fillColor: '#2196f3',
+                            fillOpacity: 0.1,
+                            weight: 1
+                        }).addTo(map);
+                    }
+                    map.setView(latlng, 12);
+                    if (btn) btn.classList.remove('loading');
+                },
+                (err) => {
+                    if (btn) btn.classList.remove('loading');
+                    const messages = {
+                        1: '位置情報の利用が拒否されています。ブラウザの設定で許可してください。',
+                        2: '現在地を取得できませんでした。',
+                        3: '位置情報の取得がタイムアウトしました。'
+                    };
+                    alert(messages[err.code] || '現在地を取得できませんでした。');
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+            );
         }
     </script>
 </body>
