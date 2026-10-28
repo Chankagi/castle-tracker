@@ -8,6 +8,12 @@
   const PREVIOUS = 'castleTracker.previous';
   const blank = () => ({ version: 2, owner: null, visits: {}, plans: {} });
   const clone = value => JSON.parse(JSON.stringify(value));
+  function canonical(value) {
+    if (Array.isArray(value)) return value.map(canonical);
+    if (value && typeof value === 'object') return Object.fromEntries(Object.keys(value).sort().map(key => [key, canonical(value[key])]));
+    return value;
+  }
+  const sameState = (a,b) => JSON.stringify(canonical(a)) === JSON.stringify(canonical(b));
   const object = value => value && typeof value === 'object' && !Array.isArray(value);
   const id = value => Number.isInteger(Number(value)) && Number(value) >= 1 && Number(value) <= 200;
   const text = (value, limit) => typeof value === 'string' && value.length <= limit;
@@ -121,5 +127,5 @@
     }
     return out;
   }
-  return { KEY, LEGACY, PREVIOUS, blank, clone, validate, merge, nextStamp, load, save, migrate, importBackup, candidates, routes };
+  return { KEY, LEGACY, PREVIOUS, blank, clone, validate, merge, sameState, nextStamp, load, save, migrate, importBackup, candidates, routes };
 });

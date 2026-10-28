@@ -120,7 +120,7 @@ async function syncNow(){
     const remote=C.validate(await (navigator.locks?navigator.locks.request('castle-tracker-cloud',exchange):exchange()));
     if(cloud.session?.user.id!==user)throw Error('ログイン状態が変わったため同期を停止しました。');
     await transaction(s=>Object.assign(s,C.merge(s,remote)),false);
-    const pending=JSON.stringify(remote)!==JSON.stringify(C.merge(remote,state));
+    const pending=!C.sameState(remote,C.merge(remote,state));
     if(pending)syncAgain=true;
     syncUI(syncAgain?'端末に保存済み · 追加の変更を同期中':'同期済み · '+new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}));
   }catch(error){syncUI('同期未完了 · '+error.message);}
