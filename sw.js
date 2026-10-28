@@ -1,122 +1,34 @@
-/* Castle Tracker - Service Worker
- * Offline support via a simple cache-first strategy for the app shell,
- * and a stale-while-revalidate strategy for map tiles & CDN assets.
- */
-const VERSION = 'v1.0.0';
-const SHELL_CACHE = `castle-shell-${VERSION}`;
-const RUNTIME_CACHE = `castle-runtime-${VERSION}`;
-
-// App shell - files that make the app work offline on first load.
-const SHELL_ASSETS = [
-  './',
-  './index.html',
-  './manifest.json',
-  './icon-192.png',
-  './icon-512.png',
-  './icon-512-maskable.png',
-  './apple-touch-icon.png',
-  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
-  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'
-];
-
-// Install: pre-cache the shell.
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(SHELL_CACHE).then((cache) =>
-      // Use addAll with no-cors for cross-origin assets where possible.
-      Promise.all(
-        SHELL_ASSETS.map((url) =>
-          cache.add(new Request(url, { cache: 'reload' })).catch(() => {
-            /* Ignore individual failures so install never rejects */
-          })
-        )
-      )
-    )
-  );
-  self.skipWaiting();
-});
-
-// Activate: clean up old caches.
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys
-          .filter((k) => k !== SHELL_CACHE && k !== RUNTIME_CACHE)
-          .map((k) => caches.delete(k))
-      )
-    )
-  );
-  self.clients.claim();
-});
-
-// Fetch strategy:
-//  - Navigation requests: network-first, fall back to cached index.html
-//  - Map tiles (cyberjapandata.gsi.go.jp): stale-while-revalidate
-//  - Other same-origin & known CDN: cache-first
-self.addEventListener('fetch', (event) => {
-  const req = event.request;
-  if (req.method !== 'GET') return;
-
-  const url = new URL(req.url);
-
-  // Navigation requests: return cached index.html when offline.
-  if (req.mode === 'navigate') {
-    event.respondWith(
-      fetch(req)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(SHELL_CACHE).then((c) => c.put('./index.html', copy)).catch(() => {});
-          return res;
-        })
-        .catch(() => caches.match('./index.html'))
-    );
-    return;
-  }
-
-  // Map tiles & other runtime assets: stale-while-revalidate.
-  if (
-    url.hostname.includes('cyberjapandata.gsi.go.jp') ||
-    url.hostname.includes('unpkg.com') ||
-    url.hostname.includes('cdnjs.cloudflare.com') ||
-    url.hostname.includes('tile.openstreetmap.org')
-  ) {
-    event.respondWith(staleWhileRevalidate(req));
-    return;
-  }
-
-  // Same-origin: cache-first, fall through to network.
-  event.respondWith(
-    caches.match(req).then((cached) => {
-      return (
-        cached ||
-        fetch(req)
-          .then((res) => {
-            if (res && res.status === 200 && res.type === 'basic') {
-              const copy = res.clone();
-              caches.open(RUNTIME_CACHE).then((c) => c.put(req, copy)).catch(() => {});
-            }
-            return res;
-          })
-          .catch(() => cached)
-      );
-    })
-  );
-});
-
-function staleWhileRevalidate(req) {
-  return caches.open(RUNTIME_CACHE).then((cache) =>
-    cache.match(req).then((cached) => {
-      const networkFetch = fetch(req)
-        .then((res) => {
-          if (res && (res.status === 200 || res.type === 'opaque')) {
-            cache.put(req, res.clone()).catch(() => {});
-          }
-          return res;
-        })
-        .catch(() => cached);
-      return cached || networkFetch;
-    })
-  );
+'use strict';
+const VERSION='v2.0.0-release', SHELL='castle-shell-'+VERSION, RUNTIME='castle-runtime-'+VERSION;
+const SHELL_FILES=['./','./index.html','./app.css?v=2.0.0-release','./castles.js?v=2.0.0-release','./core.js?v=2.0.0-release','./app.js?v=2.0.0-release','./sync.js?v=2.0.0-release','./sync-config.js?v=2.0.0-release','./manifest.json','./icon-192.png','./icon-512.png','./icon-512-maskable.png','./apple-touch-icon.png'];
+const CDN=['https://unpkg.com/leaflet@1.9.4/dist/leaflet.css','https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'];
+self.addEventListener('install',event=>event.waitUntil((async()=>{
+  const cache=await caches.open(SHELL);
+  await cache.addAll(SHELL_FILES.map(url=>new Request(url,{cache:'reload'})));
+  await Promise.all(CDN.map(url=>cache.add(url).catch(()=>{})));
+  await self.skipWaiting();
+})()));
+self.addEventListener('activate',event=>event.waitUntil((async()=>{
+  for(const name of await caches.keys()) if((name.startsWith('castle-shell-')||name.startsWith('castle-runtime-'))&&name!==SHELL&&name!==RUNTIME)await caches.delete(name);
+  await self.clients.claim();
+})()));
+async function navigation(req){
+  try{const res=await fetch(req);if(!res.ok)throw Error('offline');const cache=await caches.open(SHELL);await cache.put('./index.html',res.clone());return res;}
+  catch{return await caches.match('./index.html')||new Response('通信がありません。接続後にもう一度開いてください。',{status:503,headers:{'Content-Type':'text/plain;charset=utf-8'}});}
 }
+async function asset(req){const cached=await caches.match(req);if(cached)return cached;return fetch(req);}
+async function tile(req){
+  const cache=await caches.open(RUNTIME),cached=await cache.match(req);if(cached)return cached;
+  const res=await fetch(req);if(res.ok||res.type==='opaque'){await cache.put(req,res.clone());const keys=await cache.keys();for(const key of keys.slice(0,Math.max(0,keys.length-160)))await cache.delete(key);}return res;
+}
+self.addEventListener('fetch',event=>{
+  const req=event.request;if(req.method!=='GET')return;const url=new URL(req.url),scope=new URL(self.registration.scope);
+  // No interception of authentication, API calls or unrelated same-origin applications.
+  if(url.origin===scope.origin&&url.pathname.startsWith(scope.pathname)){
+    if(req.mode==='navigate'&&(url.pathname===scope.pathname||url.pathname===scope.pathname+'index.html')){event.respondWith(navigation(req));return;}
+    if(url.pathname.endsWith('/sync-config.js')){event.respondWith(fetch(req,{cache:'no-store'}).then(async res=>{if(!res.ok)throw Error('offline');const c=await caches.open(SHELL);await c.put(req,res.clone());return res;}).catch(()=>caches.match(req)));return;}
+    event.respondWith(asset(req));return;
+  }
+  if(CDN.includes(url.href)){event.respondWith(asset(req));return;}
+  if(url.hostname==='cyberjapandata.gsi.go.jp'&&url.pathname.startsWith('/xyz/pale/'))event.respondWith(tile(req));
+});

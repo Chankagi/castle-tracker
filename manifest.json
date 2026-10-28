@@ -6,11 +6,15 @@
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0f3460",
-  "theme_color": "#0f3460",
+  "background_color": "#f5f3eb",
+  "theme_color": "#173c36",
   "lang": "ja",
   "dir": "ltr",
-  "categories": ["travel", "lifestyle", "utilities"],
+  "categories": [
+    "travel",
+    "lifestyle",
+    "utilities"
+  ],
   "icons": [
     {
       "src": "icon-192.png",
