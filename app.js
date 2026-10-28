@@ -160,12 +160,14 @@ function events(){
   setInterval(()=>{if(!document.hidden)scheduleSync();},30000);
 }
 function boot(){
+  if(new URLSearchParams(location.hash.slice(1)).get("type")==="recovery"){location.replace("./reset.html"+location.hash);return;}
   const emailConfirmed=location.hash.includes('access_token=');
   if(location.hash.includes('access_token=')||location.hash.includes('error='))history.replaceState(null,'',location.pathname+location.search);
   try{device=localStorage.getItem('castleTracker.device');if(!/^[a-zA-Z0-9_-]{1,80}$/.test(device||'')){device=crypto.randomUUID();localStorage.setItem('castleTracker.device',device);}state=C.load(localStorage,device);}
   catch(error){writable=false;state=C.blank();$('fatal').hidden=false;$('fatal').textContent='元の記録を保護するため編集を停止しました。保存データを読み込めません。「移行前の記録を保存」で控えを取得してください。ブラウザのサイトデータは削除しないでください。';$('saveStatus').textContent='読み込みエラー · 元データは保持';}
   try{cloud=new CastleSync(window.CASTLE_SYNC_CONFIG,localStorage);}catch(error){$('fatal').hidden=false;$('fatal').textContent=error.message;}
   events();render();initializeMap();syncUI();if(writable){$('saveStatus').textContent='この端末に保存済み';scheduleSync();}
+  if(new URLSearchParams(location.search).has('settings'))switchTab('settings');
   if(emailConfirmed){switchTab('settings');$('cloudNotice').textContent='メールの確認が完了しました。登録したメールアドレスとパスワードでログインしてください。';}
   if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).then(reg=>{reg.update().catch(()=>{});}).catch(()=>{});
 }

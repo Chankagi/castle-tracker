@@ -1,6 +1,6 @@
 'use strict';
-const VERSION='v2.0.1-release', SHELL='castle-shell-'+VERSION, RUNTIME='castle-runtime-'+VERSION;
-const SHELL_FILES=['./','./index.html','./app.css?v=2.0.1-release','./castles.js?v=2.0.1-release','./core.js?v=2.0.1-release','./app.js?v=2.0.1-release','./sync.js?v=2.0.1-release','./sync-config.js?v=2.0.1-release','./manifest.json','./icon-192.png','./icon-512.png','./icon-512-maskable.png','./apple-touch-icon.png'];
+const VERSION='v2.0.2-release', SHELL='castle-shell-'+VERSION, RUNTIME='castle-runtime-'+VERSION;
+const SHELL_FILES=['./','./index.html','./app.css?v=2.0.2-release','./castles.js?v=2.0.2-release','./core.js?v=2.0.2-release','./app.js?v=2.0.2-release','./sync.js?v=2.0.2-release','./sync-config.js?v=2.0.2-release','./manifest.json','./icon-192.png','./icon-512.png','./icon-512-maskable.png','./apple-touch-icon.png'];
 const CDN=['https://unpkg.com/leaflet@1.9.4/dist/leaflet.css','https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'];
 self.addEventListener('install',event=>event.waitUntil((async()=>{
   const cache=await caches.open(SHELL);
