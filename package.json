@@ -1,6 +1,6 @@
 {
   "name": "castle-tracker",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "private": true,
   "description": "訪城記 - local-first castle journal and driving plans",
   "scripts": { "test": "node --test tests/*.test.cjs", "preview": "node serve.cjs" },

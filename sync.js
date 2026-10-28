@@ -2,7 +2,8 @@
 (function (root) {
   'use strict';
   class CastleSync {
-    constructor(config, storage, fetcher = fetch) {
+    // Native browser fetch requires its Window receiver when stored as a method.
+    constructor(config, storage, fetcher = root.fetch.bind(root)) {
       this.config = config || {}; this.storage = storage; this.fetcher = fetcher;
       this.sessionKey = 'castleTracker.session'; this.session = null;
       if (this.config.url && !/^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/.test(this.config.url)) throw Error('同期先URLの形式が正しくありません。');
